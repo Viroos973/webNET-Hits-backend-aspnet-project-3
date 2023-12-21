@@ -1,0 +1,67 @@
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
+using MIS_Backend.Database;
+using MIS_Backend.DTO;
+using MIS_Backend.Services.Interfaces;
+
+namespace MIS_Backend.Services
+{
+    public class DictionaryService : IDictionaryServices
+    {
+        private readonly AppDbContext _context;
+        private readonly IMapper _mapper;
+
+        public DictionaryService(AppDbContext context, IMapper mapper)
+        {
+            _context = context;
+            _mapper = mapper;
+        }
+
+        public async Task<SpecialtiesPagedListModel> GetSpecialytis(string? name, int? page, int? size)
+        {
+            if (size <= 0)
+            {
+                throw new BadHttpRequestException(message: $"Size value must be greater than 0");
+            }
+
+            if (page == null)
+            {
+                page = 1;
+            }
+
+            if (size == null)
+            {
+                size = 5;
+            }
+
+            var specialytis = await _context.Specialytis.ToListAsync();
+
+            if (name != null)
+            {
+                specialytis = specialytis.Where(x => x.Name.ToLower().Contains(name.ToLower())).ToList();
+            }
+
+            var maxPage = (int)((specialytis.Count() + size - 1) / size);
+
+            if (page < 1 || specialytis.Count() <= (page - 1) * size)
+            {
+                throw new BadHttpRequestException(message: $"Page value must be greater than 0 and less than {maxPage + 1}");
+            }
+
+            specialytis = specialytis.Skip((int)((page - 1) * size)).Take((int)size).ToList();
+
+            var pagination = new PageInfoModel
+            {
+                Size = (int)size,
+                Count = maxPage,
+                Current = (int)page
+            };
+
+            return new SpecialtiesPagedListModel
+            {
+                Specialties = _mapper.Map<List<SpecialityModel>>(specialytis),
+                Pagination = pagination
+            };
+        }
+    }
+}
