@@ -11,6 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
 options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddDbContext<Isd10Context>(options =>
+options.UseNpgsql(builder.Configuration.GetConnectionString("ISD10Connection")));
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -20,7 +23,6 @@ var mapperConfig = new MapperConfiguration(mc => { mc.AddProfile(new MappingProf
 var mapper = mapperConfig.CreateMapper();
 builder.Services.AddSingleton(mapper);
 builder.Services.AddMvc();
-
 
 builder.Services.AddScoped<IDictionaryServices, DictionaryService>();
 

@@ -41,5 +41,32 @@ namespace MIS_Backend.Controllers
                 });
             }
         }
+
+        [HttpGet]
+        [Route("isd10")]
+        public async Task<IActionResult> GetISD10(string? request, int? page, int? size)
+        {
+            try
+            {
+                Isd10SearchModel specialties = await _dictionaryServices.GetISD10(request, page, size);
+                return Ok(specialties);
+            }
+            catch (BadHttpRequestException ex)
+            {
+                return BadRequest(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+        }
     }
 }

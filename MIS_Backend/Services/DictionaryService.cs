@@ -9,12 +9,14 @@ namespace MIS_Backend.Services
     public class DictionaryService : IDictionaryServices
     {
         private readonly AppDbContext _context;
+        private readonly Isd10Context _isd10Context;
         private readonly IMapper _mapper;
 
-        public DictionaryService(AppDbContext context, IMapper mapper)
+        public DictionaryService(AppDbContext context, IMapper mapper, Isd10Context isd10Context)
         {
             _context = context;
             _mapper = mapper;
+            _isd10Context = isd10Context;
         }
 
         public async Task<SpecialtiesPagedListModel> GetSpecialytis(string? name, int? page, int? size)
@@ -24,15 +26,8 @@ namespace MIS_Backend.Services
                 throw new BadHttpRequestException(message: $"Size value must be greater than 0");
             }
 
-            if (page == null)
-            {
-                page = 1;
-            }
-
-            if (size == null)
-            {
-                size = 5;
-            }
+            page ??= 1;
+            size ??= 5;
 
             var specialytis = await _context.Specialytis.ToListAsync();
 
@@ -60,6 +55,46 @@ namespace MIS_Backend.Services
             return new SpecialtiesPagedListModel
             {
                 Specialties = _mapper.Map<List<SpecialityModel>>(specialytis),
+                Pagination = pagination
+            };
+        }
+
+        public async Task<Isd10SearchModel> GetISD10(string? request, int? page, int? size)
+        {
+            if (size <= 0)
+            {
+                throw new BadHttpRequestException(message: $"Size value must be greater than 0");
+            }
+
+            page ??= 1;
+            size ??= 5;
+
+            var specialytis = await _isd10Context.MedicalRecords.ToListAsync();
+
+            if (request != null)
+            {
+                specialytis = specialytis.Where(x => x.MkbName.ToLower().Contains(request.ToLower()) || x.MkbCode.ToLower().Contains(request.ToLower())).ToList();
+            }
+
+            var maxPage = (int)((specialytis.Count() + size - 1) / size);
+
+            if (page < 1 || specialytis.Count() <= (page - 1) * size)
+            {
+                throw new BadHttpRequestException(message: $"Page value must be greater than 0 and less than {maxPage + 1}");
+            }
+
+            specialytis = specialytis.Skip((int)((page - 1) * size)).Take((int)size).ToList();
+
+            var pagination = new PageInfoModel
+            {
+                Size = (int)size,
+                Count = maxPage,
+                Current = (int)page
+            };
+
+            return new Isd10SearchModel
+            {
+                records = _mapper.Map<List<Isd10RecordModel>>(specialytis),
                 Pagination = pagination
             };
         }
