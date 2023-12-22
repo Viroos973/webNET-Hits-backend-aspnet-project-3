@@ -69,21 +69,21 @@ namespace MIS_Backend.Services
             page ??= 1;
             size ??= 5;
 
-            var specialytis = await _isd10Context.MedicalRecords.ToListAsync();
+            var isd10 = await _isd10Context.MedicalRecords.ToListAsync();
 
             if (request != null)
             {
-                specialytis = specialytis.Where(x => x.MkbName.ToLower().Contains(request.ToLower()) || x.MkbCode.ToLower().Contains(request.ToLower())).ToList();
+                isd10 = isd10.Where(x => x.MkbName.ToLower().Contains(request.ToLower()) || x.MkbCode.ToLower().Contains(request.ToLower())).ToList();
             }
 
-            var maxPage = (int)((specialytis.Count() + size - 1) / size);
+            var maxPage = (int)((isd10.Count() + size - 1) / size);
 
-            if (page < 1 || specialytis.Count() <= (page - 1) * size)
+            if (page < 1 || isd10.Count() <= (page - 1) * size)
             {
                 throw new BadHttpRequestException(message: $"Page value must be greater than 0 and less than {maxPage + 1}");
             }
 
-            specialytis = specialytis.Skip((int)((page - 1) * size)).Take((int)size).ToList();
+            isd10 = isd10.Skip((int)((page - 1) * size)).Take((int)size).ToList();
 
             var pagination = new PageInfoModel
             {
@@ -94,9 +94,16 @@ namespace MIS_Backend.Services
 
             return new Isd10SearchModel
             {
-                records = _mapper.Map<List<Isd10RecordModel>>(specialytis),
+                records = _mapper.Map<List<Isd10RecordModel>>(isd10),
                 Pagination = pagination
             };
+        }
+
+        public async Task<List<Isd10RecordModel>> GetRootISD10()
+        {
+            var isd10 = await _isd10Context.MedicalRecords.Where(x => x.IdParent == null).ToListAsync();
+            isd10 = isd10.OrderBy(x => x.Id).ToList();
+            return _mapper.Map<List<Isd10RecordModel>>(isd10);
         }
     }
 }

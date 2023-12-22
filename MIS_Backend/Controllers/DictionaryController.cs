@@ -68,5 +68,24 @@ namespace MIS_Backend.Controllers
                 });
             }
         }
+
+        [HttpGet]
+        [Route("isd10/roots")]
+        public async Task<IActionResult> GetRootISD10()
+        {
+            try
+            {
+                List<Isd10RecordModel> specialties = await _dictionaryServices.GetRootISD10();
+                return Ok(specialties);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+        }
     }
 }

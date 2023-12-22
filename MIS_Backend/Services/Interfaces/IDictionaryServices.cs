@@ -6,5 +6,6 @@ namespace MIS_Backend.Services.Interfaces
     {
         Task<SpecialtiesPagedListModel> GetSpecialytis(string? name, int? page, int? size);
         Task<Isd10SearchModel> GetISD10(string? request, int? page, int? size);
+        Task<List<Isd10RecordModel>> GetRootISD10();
     }
 }
