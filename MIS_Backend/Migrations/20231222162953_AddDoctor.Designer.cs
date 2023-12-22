@@ -3,6 +3,7 @@ using System;
 using MIS_Backend.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MIS_Backend.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231222162953_AddDoctor")]
+    partial class AddDoctor
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -82,28 +85,15 @@ namespace MIS_Backend.Migrations
                     b.ToTable("Specialytis");
                 });
 
-            modelBuilder.Entity("MIS_Backend.Database.Models.Token", b =>
-                {
-                    b.Property<string>("InvalideToken")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("ExpiredDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("InvalideToken");
-
-                    b.ToTable("Tokens");
-                });
-
             modelBuilder.Entity("MIS_Backend.Database.Models.Doctor", b =>
                 {
-                    b.HasOne("MIS_Backend.Database.Models.Specialyti", "Specialytis")
+                    b.HasOne("MIS_Backend.Database.Models.Specialyti", "Specialyti")
                         .WithMany("Doctors")
                         .HasForeignKey("Speciality")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Specialytis");
+                    b.Navigation("Specialyti");
                 });
 
             modelBuilder.Entity("MIS_Backend.Database.Models.Specialyti", b =>
