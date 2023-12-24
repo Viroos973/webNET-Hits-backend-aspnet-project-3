@@ -25,6 +25,7 @@ namespace MIS_Backend.Mappings
                 dest => dest.CreateTime,
                 opt => opt.MapFrom(src => src.Createtime)
                 );
+            CreateMap<Doctor, DoctorModel>();
         }
     }
 }

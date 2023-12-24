@@ -13,5 +13,7 @@ namespace MIS_Backend.Database.Models
         [MinLength(1)]
         [Required]
         public string Name { get; set; }
+
+        public ICollection<Doctor> Doctors { get; set; }
     }
 }

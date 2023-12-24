@@ -4,6 +4,9 @@ using MIS_Backend.Database;
 using MIS_Backend.Services;
 using MIS_Backend.Services.Interfaces;
 using MIS_Backend.Mappings;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +28,32 @@ builder.Services.AddSingleton(mapper);
 builder.Services.AddMvc();
 
 builder.Services.AddScoped<IDictionaryServices, DictionaryService>();
+builder.Services.AddScoped<IDoctorService, DoctorService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(o =>
+{
+    o.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidIssuer = "MISBackend",
+        ValidateIssuer = true,
+        ValidAudience = "MISFronted",
+        ValidateAudience = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("jAoRAj9kzVPykFATzV1Ye0LJNmdcuB")),
+        ValidateIssuerSigningKey = true,
+        ValidateLifetime = true,
+        LifetimeValidator = (before, expires, token, parametrs) =>
+        {
+            var utcNow = DateTime.UtcNow;
+            return before <= utcNow && utcNow < expires;
+        }
+    };
+});
 
 var app = builder.Build();
 
