@@ -6,11 +6,12 @@ namespace MIS_Backend.DTO
     public class DoctorRegisterModel
     {
         [MinLength(1)]
+        [MaxLength(1000)]
         [Required]
         public string Name { get; set; }
 
         [Required]
-        [MinLength(1)]
+        [MinLength(6)]
         public string Password { get; set; }
 
         [Required]

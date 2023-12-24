@@ -23,9 +23,11 @@ public partial class Isd10Context : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.HasPostgresExtension("uuid-ossp");
+
         modelBuilder.Entity<MedicalRecord>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("medical_records_pkey");
+            entity.HasKey(e => e.Id).HasName("id_pk");
 
             entity.ToTable("medical_records");
 
@@ -44,6 +46,7 @@ public partial class Isd10Context : DbContext
             entity.Property(e => e.RecCode)
                 .HasMaxLength(20)
                 .HasColumnName("rec_code");
+            entity.Property(e => e.Root).HasColumnName("root");
         });
 
         OnModelCreatingPartial(modelBuilder);

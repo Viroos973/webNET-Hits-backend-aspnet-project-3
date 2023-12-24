@@ -10,5 +10,6 @@ namespace MIS_Backend.Database
         public DbSet<Specialyti> Specialytis { get; set; }
         public DbSet<Doctor> Doctors { get; set; }
         public DbSet<Token> Tokens { get; set; }
+        public DbSet<Patient> Patients { get; set; }
     }
 }

@@ -6,7 +6,7 @@ using MIS_Backend.Services.Interfaces;
 namespace MIS_Backend.Controllers
 {
     [ApiController]
-    [Route("api/docotr")]
+    [Route("api/doctor")]
     public class DoctorController : ControllerBase
     {
         public readonly IDoctorService _doctorSevise;

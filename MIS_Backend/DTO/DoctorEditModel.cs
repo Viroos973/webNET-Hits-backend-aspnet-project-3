@@ -13,6 +13,7 @@ namespace MIS_Backend.DTO
         public string EmailAddress { get; set; }
 
         [MinLength(1)]
+        [MaxLength(1000)]
         [Required]
         public string Name { get; set; }
 
