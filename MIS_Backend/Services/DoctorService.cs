@@ -128,14 +128,14 @@ namespace MIS_Backend.Services
 
         public async Task<DoctorModel> GetProfile(Guid id)
         {
-            var user = await _context.Doctors.Where(x => x.Id == id).FirstOrDefaultAsync();
+            var doctor = await _context.Doctors.Where(x => x.Id == id).FirstOrDefaultAsync();
 
-            if (user == null)
+            if (doctor == null)
             {
                 throw new KeyNotFoundException(message: $"User with id={id} don't in database");
             }
 
-            return _mapper.Map<DoctorModel>(user);
+            return _mapper.Map<DoctorModel>(doctor);
         }
 
         public async Task EditProfile(DoctorEditModel editModel, Guid id)
@@ -153,6 +153,11 @@ namespace MIS_Backend.Services
             }
 
             var doctor = await _context.Doctors.Where(x => x.Id == id).FirstOrDefaultAsync();
+
+            if (doctor == null)
+            {
+                throw new KeyNotFoundException(message: $"User with id={id} don't in database");
+            }
 
             doctor.EmailAddress = editModel.EmailAddress;
             doctor.Name = editModel.Name;

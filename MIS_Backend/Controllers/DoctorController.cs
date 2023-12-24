@@ -131,6 +131,14 @@ namespace MIS_Backend.Controllers
                     Message = "User is not authorized"
                 });
             }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new Response
@@ -163,6 +171,22 @@ namespace MIS_Backend.Controllers
                 {
                     Status = "Error",
                     Message = "User is not authorized"
+                });
+            }
+            catch (BadHttpRequestException ex)
+            {
+                return BadRequest(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
                 });
             }
             catch (Exception ex)
