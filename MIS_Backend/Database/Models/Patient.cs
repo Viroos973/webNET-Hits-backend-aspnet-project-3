@@ -19,5 +19,7 @@ namespace MIS_Backend.Database.Models
 
         [Required]
         public string Genders { get; set; }
+
+        public ICollection<Inspection> Inspections { get; set; }
     }
 }

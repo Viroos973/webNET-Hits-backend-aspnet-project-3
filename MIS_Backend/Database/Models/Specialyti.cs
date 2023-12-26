@@ -15,5 +15,7 @@ namespace MIS_Backend.Database.Models
         public string Name { get; set; }
 
         public ICollection<Doctor> Doctors { get; set; }
+
+        public ICollection<Consultation> Consultations { get; set; }
     }
 }
