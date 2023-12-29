@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MIS_Backend.Database;
 using MIS_Backend.Database.Enums;
@@ -13,11 +15,13 @@ namespace MIS_Backend.Services
     {
         private readonly AppDbContext _context;
         private readonly Isd10Context _isd10Context;
+        private readonly IMapper _mapper;
 
-        public PatientService(AppDbContext context, Isd10Context isd10Context)
+        public PatientService(AppDbContext context, Isd10Context isd10Context, IMapper mapper)
         {
             _context = context;
             _isd10Context = isd10Context;
+            _mapper = mapper;
         }
 
         public async Task<Guid> CreatePatient(PatientCreateModel patient)
@@ -48,11 +52,6 @@ namespace MIS_Backend.Services
             if(previousInspection == null && inspection.PreviousInspectionId != null)
             {
                 throw new BadHttpRequestException(message: "previous inspection not found");
-            }
-
-            if (previousInspection != null && previousInspection.HasNested)
-            {
-                throw new BadHttpRequestException(message: "The inspection already has children inspections");
             }
 
             var patient = await _context.Patients.Where(x => x.Id == patientId).FirstOrDefaultAsync();
@@ -100,14 +99,19 @@ namespace MIS_Backend.Services
                 throw new BadHttpRequestException(message: "Inspection date and time can't be earlier than date and time of previous inspection");
             }
 
-            if (inspection.Conclusion == Conclusion.Death && inspection.DeathDate == null)
+            if (inspection.Conclusion == Conclusion.Death && (inspection.DeathDate == null || inspection.NextVisitDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Death\", DeathDate mustn't be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion \"Death\", DeathDate mustn't be null and NextVisitDate must be null");
             }
 
-            if (inspection.Conclusion == Conclusion.Disease && inspection.NextVisitDate == null)
+            if (inspection.Conclusion == Conclusion.Disease && (inspection.NextVisitDate == null || inspection.DeathDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Disease\", NextVisitDate mustn't be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion \"Disease\", NextVisitDate mustn't be null and DeathDate must be null");
+            }
+
+            if (inspection.Conclusion == Conclusion.Recovery && (inspection.NextVisitDate != null || inspection.DeathDate != null))
+            {
+                throw new BadHttpRequestException(message: "When choosing the conclusion \"Recovery\", NextVisitDate and DeathDate must be null");
             }
 
             if (inspection.Diagnoses.Count(x => x.Type == DiagnosisType.Main) != 1)
@@ -124,6 +128,22 @@ namespace MIS_Backend.Services
             if (inspection.Consultations != null && inspection.Consultations.Select(x => x.SpecialityId).Distinct().Count() != inspection.Consultations.Count)
             {
                 throw new BadHttpRequestException(message: "Inspection cannot have several consultations with the same specialty of a doctor");
+            }
+
+            if (previousInspection != null)
+            {
+                if (previousInspection.HasNested)
+                {
+                    throw new BadHttpRequestException(message: "The inspection already has children inspections");
+                }
+
+                if (previousInspection.Conclusion == Conclusion.Recovery)
+                {
+                    throw new BadHttpRequestException(message: "The patient has already recovered");
+                }
+
+                previousInspection.HasChain = previousInspection.PreviousInspectionId == null;
+                previousInspection.HasNested = true;
             }
 
             var inspectionId = Guid.NewGuid();
@@ -147,12 +167,6 @@ namespace MIS_Backend.Services
                 HasChain = false,
                 HasNested = false
             });
-
-            if(previousInspection != null)
-            {
-                previousInspection.HasChain = previousInspection.PreviousInspectionId == null;
-                previousInspection.HasNested = true;
-            }
 
             foreach (var diagnosis in inspection.Diagnoses)
             {
@@ -197,6 +211,76 @@ namespace MIS_Backend.Services
             await _context.SaveChangesAsync();
 
             return inspectionId;
+        }
+
+        public async Task<PatientPagedListModel> GetPatient(Guid doctorId, string? name, Conclusion[] conclusions, PatientSorting? sorting, bool? scheduledVisits, 
+            bool? onlyMine, int? page, int? size)
+        {
+            var patient = await _context.Patients.Include(x => x.Inspections).ToListAsync();
+
+            if (size <= 0)
+            {
+                throw new BadHttpRequestException(message: $"Size value must be greater than 0");
+            }
+
+            if (conclusions.Length != 0)
+            {
+                patient = patient.Where(x => x.Inspections.Any(i => conclusions.Contains(i.Conclusion))).ToList();
+            }
+
+            if (onlyMine == true)
+            {
+                patient = patient.Where(x => x.Inspections.Any(i => i.DoctorId == doctorId)).ToList();
+            }
+
+            if (scheduledVisits == true)
+            {
+                patient = patient.Where(x => x.Inspections.Any(i => !i.HasNested && i.NextVisitDate != null && i.NextVisitDate > DateTime.UtcNow)).ToList();
+            }
+
+            patient = SortingDishes(patient, sorting);
+
+            if (name != null)
+            {
+                patient = patient.Where(x => x.Name.ToLower().Contains(name.ToLower())).ToList();
+            }
+
+            var maxPage = (int)((patient.Count() + size - 1) / size);
+
+            if ((page < 1 || patient.Count() <= (page - 1) * size) && maxPage > 0)
+            {
+                throw new BadHttpRequestException(message: $"Page value must be greater than 0 and less than {maxPage + 1}");
+            }
+
+            patient = patient.Skip((int)((page - 1) * size)).Take((int)size).ToList();
+
+            var pagination = new PageInfoModel
+            {
+                Size = (int)size,
+                Count = maxPage,
+                Current = (int)page
+            };
+
+            return new PatientPagedListModel
+            {
+                Patients = _mapper.Map<List<PatientModel>>(patient),
+                Pagination = pagination
+            };
+        }
+
+        public List<Patient> SortingDishes(List<Patient> patients, PatientSorting? sorting)
+        {
+            if (sorting == PatientSorting.NameDesc)
+                return patients.OrderByDescending(x => x.Name).ToList();
+            if (sorting == PatientSorting.CreateAsc)
+                return patients.OrderBy(x => x.CreateTime).ToList();
+            if (sorting == PatientSorting.CreateDesc)
+                return patients.OrderByDescending(x => x.CreateTime).ToList();
+            if (sorting == PatientSorting.InspectionAsc)
+                return patients.OrderBy(x => x.Inspections.Count > 0 ? x.Inspections.Min(i => i.Date) : DateTime.MinValue).ToList();
+            if (sorting == PatientSorting.InspectionDesc)
+                return patients.OrderByDescending(x => x.Inspections.Count > 0 ? x.Inspections.Min(i => i.Date) : DateTime.MinValue).ToList();
+            return patients.OrderBy(x => x.Name).ToList();
         }
     }
 }
