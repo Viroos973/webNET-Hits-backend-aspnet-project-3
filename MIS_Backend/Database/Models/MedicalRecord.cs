@@ -7,17 +7,17 @@ public partial class MedicalRecord
 {
     public Guid Id { get; set; }
 
-    public int? Actual { get; set; }
+    public int Actual { get; set; }
 
-    public string? MkbCode { get; set; }
+    public string MkbCode { get; set; } = null!;
 
-    public string? MkbName { get; set; }
+    public string MkbName { get; set; } = null!;
 
-    public string? RecCode { get; set; }
+    public string RecCode { get; set; } = null!;
 
     public Guid? IdParent { get; set; }
 
-    public DateTime? Createtime { get; set; }
+    public DateTime Createtime { get; set; }
 
-    public Guid? Root { get; set; }
+    public Guid Root { get; set; }
 }
