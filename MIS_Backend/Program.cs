@@ -30,6 +30,7 @@ builder.Services.AddMvc();
 builder.Services.AddScoped<IDictionaryServices, DictionaryService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<IPatientService, PatientService>();
 
 builder.Services.AddAuthentication(options =>
 {

@@ -2,7 +2,7 @@
 
 namespace MIS_Backend.Database.Models
 {
-    public class Specialyti
+    public class Patient
     {
         [Key]
         public Guid Id { get; set; }
@@ -11,11 +11,15 @@ namespace MIS_Backend.Database.Models
         public DateTime CreateTime { get; set; }
 
         [MinLength(1)]
+        [MaxLength(1000)]
         [Required]
         public string Name { get; set; }
 
-        public ICollection<Doctor> Doctors { get; set; }
+        public DateTime? BirthDate { get; set; }
 
-        public ICollection<Consultation> Consultations { get; set; }
+        [Required]
+        public string Genders { get; set; }
+
+        public ICollection<Inspection> Inspections { get; set; }
     }
 }

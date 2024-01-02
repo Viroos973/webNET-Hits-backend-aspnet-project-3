@@ -17,7 +17,7 @@ namespace MIS_Backend.Controllers
 
         [HttpGet]
         [Route("speciality")]
-        public async Task<IActionResult> GetSpecialties(string? name, int? page, int? size)
+        public async Task<IActionResult> GetSpecialties(string? name, int? page = 1, int? size = 5)
         {
             try
             {
@@ -44,7 +44,7 @@ namespace MIS_Backend.Controllers
 
         [HttpGet]
         [Route("isd10")]
-        public async Task<IActionResult> GetISD10(string? request, int? page, int? size)
+        public async Task<IActionResult> GetISD10(string? request, int? page = 1, int? size = 5)
         {
             try
             {

@@ -36,5 +36,9 @@ namespace MIS_Backend.Database.Models
         public Guid? Speciality { get; set; }
         [ForeignKey("Speciality")]
         public Specialyti Specialytis { get; set; }
+
+        public ICollection<Inspection> Inspections { get; set; }
+
+        public ICollection<Comment> Comments { get; set; }
     }
 }

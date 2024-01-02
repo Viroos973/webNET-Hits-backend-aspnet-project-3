@@ -26,9 +26,6 @@ namespace MIS_Backend.Services
                 throw new BadHttpRequestException(message: $"Size value must be greater than 0");
             }
 
-            page ??= 1;
-            size ??= 5;
-
             var specialytis = await _context.Specialytis.ToListAsync();
 
             if (name != null)
@@ -65,9 +62,6 @@ namespace MIS_Backend.Services
             {
                 throw new BadHttpRequestException(message: $"Size value must be greater than 0");
             }
-
-            page ??= 1;
-            size ??= 5;
 
             var isd10 = await _isd10Context.MedicalRecords.ToListAsync();
 
