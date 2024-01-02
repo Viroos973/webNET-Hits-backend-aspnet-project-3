@@ -11,5 +11,6 @@ namespace MIS_Backend.Services.Interfaces
             bool? onlyMine, int? page, int? size);
         Task<InspectionPagedListModel> GetInspections(Guid patientId, bool? grouped, List<Guid> icdRoots, int? page, int? size);
         Task<PatientModel> GetSpecificPatient(Guid patientId);
+        Task<List<InspectionShortModel>> GetInspectionWithoutChild(Guid patientId, string? request);
     }
 }

@@ -384,6 +384,61 @@ namespace MIS_Backend.Services
             return _mapper.Map<PatientModel>(patient);
         }
 
+        public async Task<List<InspectionShortModel>> GetInspectionWithoutChild(Guid patientId, string? request)
+        {
+            var patient = _context.Patients.Where(x => x.Id == patientId).FirstOrDefault();
+
+            if (patient == null)
+            {
+                throw new KeyNotFoundException(message: $"Patient not found");
+            }
+
+            var inspection = await _context.Inspections.Where(x => x.PatientId == patientId && !x.HasNested).Include(x => x.Diagnoses).ToListAsync();
+
+            List<InspectionShortModel> inspections = new List<InspectionShortModel>();
+
+            for (int i = 0; i < inspection.Count; i++)
+            {
+                var diagnosis = inspection[i].Diagnoses.Where(x => x.Type == DiagnosisType.Main.ToString())
+                    .Join(_isd10Context.MedicalRecords,
+                      d => d.IcdDiagnosisId,
+                      m => m.Id,
+                      (d, m) => new
+                      {
+                          Id = d.Id,
+                          CreateTime = d.CreateTime,
+                          Code = m.MkbCode,
+                          Name = m.MkbName,
+                          Discription = d.Discription,
+                          Type = d.Type,
+                          Root = m.Root
+                      }).First();
+
+                inspections.Add(new InspectionShortModel
+                {
+                     Id = inspection[i].Id,
+                     CreateTime = inspection[i].CreateTime,
+                     Date = inspection[i].Date,
+                     Diagnosis = new DiagnosisModel
+                     {
+                         Id = diagnosis.Id,
+                         CreateTime = diagnosis.CreateTime,
+                         Code = diagnosis.Code,
+                         Name = diagnosis.Name,
+                         Discription = diagnosis.Discription,
+                         Type = diagnosis.Type
+                     }
+                });
+            }
+
+            if (request != null)
+            {
+                inspections = inspections.Where(x => x.Diagnosis.Name.ToLower().Contains(request.ToLower()) || x.Diagnosis.Code.ToLower().Contains(request.ToLower())).ToList();
+            }
+
+            return inspections;
+        }
+
         public List<Patient> SortingDishes(List<Patient> patients, PatientSorting? sorting)
         {
             if (sorting == PatientSorting.NameDesc)

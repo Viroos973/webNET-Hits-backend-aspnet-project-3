@@ -220,5 +220,42 @@ namespace MIS_Backend.Controllers
                 });
             }
         }
+
+        [HttpGet]
+        [Authorize]
+        [Route("{id}/inspection/search")]
+        public async Task<IActionResult> GetInspectionWithoutChild(Guid id, string? request)
+        {
+            try
+            {
+                await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+                List<InspectionShortModel> inspections = await _patientSevise.GetInspectionWithoutChild(id, request);
+                return Ok(inspections);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new Response
+                {
+                    Status = "Error",
+                    Message = "User is not authorized"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+        }
     }
 }
