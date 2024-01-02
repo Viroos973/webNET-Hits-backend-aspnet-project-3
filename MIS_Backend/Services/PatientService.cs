@@ -1,15 +1,10 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MIS_Backend.Database;
 using MIS_Backend.Database.Enums;
 using MIS_Backend.Database.Models;
 using MIS_Backend.DTO;
 using MIS_Backend.Services.Interfaces;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 
 namespace MIS_Backend.Services
 {
