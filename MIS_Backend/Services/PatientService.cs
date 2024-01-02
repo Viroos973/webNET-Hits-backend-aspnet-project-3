@@ -51,7 +51,7 @@ namespace MIS_Backend.Services
         public async Task<Guid> CreateInspection(InspectionCreateModel inspection, Guid patientId, Guid doctorId)
         {
             var previousInspection = await _context.Inspections.Where(x => x.Id == inspection.PreviousInspectionId).FirstOrDefaultAsync();
-            if(previousInspection == null && inspection.PreviousInspectionId != null)
+            if (previousInspection == null && inspection.PreviousInspectionId != null)
             {
                 throw new BadHttpRequestException(message: "previous inspection not found");
             }
@@ -63,7 +63,7 @@ namespace MIS_Backend.Services
             }
 
             var isd10 = _isd10Context.MedicalRecords.Select(x => x.Id);
-            
+
             foreach (var diagnosis in inspection.Diagnoses)
             {
                 if (!isd10.Contains(diagnosis.IcdDiagnosisId))
@@ -72,7 +72,7 @@ namespace MIS_Backend.Services
                 }
             }
 
-            if(inspection.Consultations != null)
+            if (inspection.Consultations != null)
             {
                 var speciality = _context.Specialytis.Select(x => x.Id);
 
@@ -215,15 +215,15 @@ namespace MIS_Backend.Services
             return inspectionId;
         }
 
-        public async Task<PatientPagedListModel> GetPatient(Guid doctorId, string? name, List<Conclusion> conclusions, PatientSorting? sorting, bool? scheduledVisits, 
+        public async Task<PatientPagedListModel> GetPatient(Guid doctorId, string? name, List<Conclusion> conclusions, PatientSorting? sorting, bool? scheduledVisits,
             bool? onlyMine, int? page, int? size)
         {
-            var patient = await _context.Patients.Include(x => x.Inspections).ToListAsync();
-
             if (size <= 0)
             {
                 throw new BadHttpRequestException(message: $"Size value must be greater than 0");
             }
+
+            var patient = await _context.Patients.Include(x => x.Inspections).ToListAsync();
 
             if (conclusions.Count != 0)
             {
@@ -272,11 +272,16 @@ namespace MIS_Backend.Services
 
         public async Task<InspectionPagedListModel> GetInspections(Guid patientId, bool? grouped, List<Guid> icdRoots, int? page, int? size)
         {
+            if (size <= 0)
+            {
+                throw new BadHttpRequestException(message: $"Size value must be greater than 0");
+            }
+
             var patient = _context.Patients.Where(x => x.Id == patientId).FirstOrDefault();
 
             if (patient == null)
             {
-                throw new BadHttpRequestException(message: "patient not found");
+                throw new KeyNotFoundException(message: $"Patient not found");
             }
 
             var isd10 = _isd10Context.MedicalRecords.Select(x => x.Id);
@@ -301,46 +306,47 @@ namespace MIS_Backend.Services
 
             List<InspectionPreviewModel> inspections = new List<InspectionPreviewModel>();
 
-            for (int i =0; i < inspectionWithoutISD.Count; i++)
+            for (int i = 0; i < inspectionWithoutISD.Count; i++)
             {
-                var diagnosis = inspectionWithoutISD[i].Diagnoses.Join(_isd10Context.MedicalRecords,
-                  d => d.IcdDiagnosisId,
-                  m => m.Id,
-                  (d, m) => new
-                  {
-                      Id = d.Id,
-                      CreateTime = d.CreateTime,
-                      Code = m.MkbCode,
-                      Name = m.MkbName,
-                      Discription = d.Discription,
-                      Type = d.Type,
-                      Root = m.Root
-                  }).ToList();
+                var diagnosis = inspectionWithoutISD[i].Diagnoses.Where(x => x.Type == DiagnosisType.Main.ToString())
+                    .Join(_isd10Context.MedicalRecords,
+                      d => d.IcdDiagnosisId,
+                      m => m.Id,
+                      (d, m) => new
+                      {
+                          Id = d.Id,
+                          CreateTime = d.CreateTime,
+                          Code = m.MkbCode,
+                          Name = m.MkbName,
+                          Discription = d.Discription,
+                          Type = d.Type,
+                          Root = m.Root
+                      }).First();
 
-                if (icdRoots.Count == 0 || diagnosis.Any(d => icdRoots.Contains(d.Root)))
-                inspections.Add(new InspectionPreviewModel
-                {
-                    Id = inspectionWithoutISD[i].Id,
-                    CreateTime = inspectionWithoutISD[i].CreateTime,
-                    PreviousId = inspectionWithoutISD[i].PreviousInspectionId,
-                    Date = inspectionWithoutISD[i].Date,
-                    Conclusion = inspectionWithoutISD[i].Conclusion,
-                    PatientId = inspectionWithoutISD[i].PatientId,
-                    Patient = inspectionWithoutISD[i].Patients.Name,
-                    DoctorId = inspectionWithoutISD[i].DoctorId,
-                    Doctor = inspectionWithoutISD[i].Doctors.Name,
-                    Diagnosis = diagnosis.Select(d => new DiagnosisModel
+                if (icdRoots.Count == 0 || icdRoots.Contains(diagnosis.Root))
+                    inspections.Add(new InspectionPreviewModel
                     {
-                        Id = d.Id,
-                        CreateTime = d.CreateTime,
-                        Code = d.Code,
-                        Name = d.Name,
-                        Discription = d.Discription,
-                        Type = d.Type
-                    }).ToList(),
-                    HasChain = inspectionWithoutISD[i].HasChain,
-                    HasNested = inspectionWithoutISD[i].HasNested
-                });
+                        Id = inspectionWithoutISD[i].Id,
+                        CreateTime = inspectionWithoutISD[i].CreateTime,
+                        PreviousId = inspectionWithoutISD[i].PreviousInspectionId,
+                        Date = inspectionWithoutISD[i].Date,
+                        Conclusion = inspectionWithoutISD[i].Conclusion,
+                        PatientId = inspectionWithoutISD[i].PatientId,
+                        Patient = inspectionWithoutISD[i].Patients.Name,
+                        DoctorId = inspectionWithoutISD[i].DoctorId,
+                        Doctor = inspectionWithoutISD[i].Doctors.Name,
+                        Diagnosis = new DiagnosisModel
+                        {
+                            Id = diagnosis.Id,
+                            CreateTime = diagnosis.CreateTime,
+                            Code = diagnosis.Code,
+                            Name = diagnosis.Name,
+                            Discription = diagnosis.Discription,
+                            Type = diagnosis.Type
+                        },
+                        HasChain = inspectionWithoutISD[i].HasChain,
+                        HasNested = inspectionWithoutISD[i].HasNested
+                    });
             }
 
             var maxPage = (int)((inspections.Count() + size - 1) / size);
@@ -364,6 +370,18 @@ namespace MIS_Backend.Services
                 Inspections = inspections,
                 Pagination = pagination
             };
+        }
+
+        public async Task<PatientModel> GetSpecificPatient(Guid patientId)
+        {
+            var patient = _context.Patients.Where(x => x.Id == patientId).FirstOrDefault();
+
+            if (patient == null)
+            {
+                throw new KeyNotFoundException(message: "patient not found");
+            }
+
+            return _mapper.Map<PatientModel>(patient);
         }
 
         public List<Patient> SortingDishes(List<Patient> patients, PatientSorting? sorting)

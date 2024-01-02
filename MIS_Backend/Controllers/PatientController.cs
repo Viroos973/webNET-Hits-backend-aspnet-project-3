@@ -166,6 +166,51 @@ namespace MIS_Backend.Controllers
                     Message = ex.Message
                 });
             }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+        }
+
+        [HttpGet]
+        [Authorize]
+        [Route("{id}")]
+        public async Task<IActionResult> GetSpecificPatient(Guid id)
+        {
+            try
+            {
+                await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+                PatientModel patient = await _patientSevise.GetSpecificPatient(id);
+                return Ok(patient);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new Response
+                {
+                    Status = "Error",
+                    Message = "User is not authorized"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new Response

@@ -34,7 +34,7 @@ namespace MIS_Backend.DTO
         public string Doctor { get; set; }
 
         [Required]
-        public List<DiagnosisModel> Diagnosis { get; set; }
+        public DiagnosisModel Diagnosis { get; set; }
 
         public bool? HasChain { get; set; }
 
