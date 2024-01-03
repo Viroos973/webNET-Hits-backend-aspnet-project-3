@@ -398,15 +398,14 @@ namespace MIS_Backend.Services
                     .Join(_isd10Context.MedicalRecords,
                       d => d.IcdDiagnosisId,
                       m => m.Id,
-                      (d, m) => new
+                      (d, m) => new DiagnosisModel
                       {
                           Id = d.Id,
                           CreateTime = d.CreateTime,
                           Code = m.MkbCode,
                           Name = m.MkbName,
                           Discription = d.Discription,
-                          Type = d.Type,
-                          Root = m.Root
+                          Type = d.Type
                       }).First();
 
                 inspections.Add(new InspectionShortModel
@@ -414,15 +413,7 @@ namespace MIS_Backend.Services
                      Id = inspection[i].Id,
                      CreateTime = inspection[i].CreateTime,
                      Date = inspection[i].Date,
-                     Diagnosis = new DiagnosisModel
-                     {
-                         Id = diagnosis.Id,
-                         CreateTime = diagnosis.CreateTime,
-                         Code = diagnosis.Code,
-                         Name = diagnosis.Name,
-                         Discription = diagnosis.Discription,
-                         Type = diagnosis.Type
-                     }
+                     Diagnosis = diagnosis
                 });
             }
 
