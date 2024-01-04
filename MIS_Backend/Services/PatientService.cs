@@ -90,7 +90,7 @@ namespace MIS_Backend.Services
                 throw new BadHttpRequestException(message: $"Date and time of the next visit can't be earlier than now {DateTime.UtcNow}");
             }
 
-            var checkDate = await _context.Inspections.Where(x => x.Id == inspection.PreviousInspectionId && x.Date > inspection.Date).FirstOrDefaultAsync();
+            var checkDate = await _context.Inspections.Where(x => x.Id == inspection.PreviousInspectionId && x.Date >= inspection.Date).FirstOrDefaultAsync();
             if (checkDate != null)
             {
                 throw new BadHttpRequestException(message: "Inspection date and time can't be earlier than date and time of previous inspection");
@@ -103,17 +103,17 @@ namespace MIS_Backend.Services
 
             if (inspection.Conclusion == Conclusion.Death && (inspection.DeathDate == null || inspection.NextVisitDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Death\", DeathDate mustn't be null and NextVisitDate must be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion 'Death', DeathDate mustn't be null and NextVisitDate must be null");
             }
 
             if (inspection.Conclusion == Conclusion.Disease && (inspection.NextVisitDate == null || inspection.DeathDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Disease\", NextVisitDate mustn't be null and DeathDate must be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion 'Disease', NextVisitDate mustn't be null and DeathDate must be null");
             }
 
             if (inspection.Conclusion == Conclusion.Recovery && (inspection.NextVisitDate != null || inspection.DeathDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Recovery\", NextVisitDate and DeathDate must be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion 'Recovery', NextVisitDate and DeathDate must be null");
             }
 
             if (inspection.Diagnoses.Count(x => x.Type == DiagnosisType.Main) != 1)

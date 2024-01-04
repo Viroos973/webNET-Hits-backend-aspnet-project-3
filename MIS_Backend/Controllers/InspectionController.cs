@@ -108,5 +108,50 @@ namespace MIS_Backend.Controllers
                 });
             }
         }
+
+        [HttpGet]
+        [Authorize]
+        [Route("{id}/chain")]
+        public async Task<IActionResult> GetInspectionChain(Guid id)
+        {
+            try
+            {
+                await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+                List<InspectionPreviewModel> inspection = await _inspectionSevise.GetInspectionChain(id);
+                return Ok(inspection);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new Response
+                {
+                    Status = "Error",
+                    Message = "User is not authorized"
+                });
+            }
+            catch (BadHttpRequestException ex)
+            {
+                return BadRequest(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+        }
     }
 }

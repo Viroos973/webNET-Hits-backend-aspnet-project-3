@@ -6,5 +6,6 @@ namespace MIS_Backend.Services.Interfaces
     {
         Task<InspectionModel> GetSpecificInspection(Guid inspectionId);
         Task EdiInspection(InspectionEditModel inspectionEdit, Guid inspectionId, Guid doctorId);
+        Task<List<InspectionPreviewModel>> GetInspectionChain(Guid inspectionId);
     }
 }

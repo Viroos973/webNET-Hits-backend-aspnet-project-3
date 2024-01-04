@@ -99,27 +99,32 @@ namespace MIS_Backend.Services
 
             if (inspectionEdit.Conclusion == Conclusion.Death && (inspectionEdit.DeathDate == null || inspectionEdit.NextVisitDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Death\", DeathDate mustn't be null and NextVisitDate must be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion 'Death', DeathDate mustn't be null and NextVisitDate must be null");
             }
 
             if (inspectionEdit.Conclusion == Conclusion.Disease && (inspectionEdit.NextVisitDate == null || inspectionEdit.DeathDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Disease\", NextVisitDate mustn't be null and DeathDate must be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion 'Disease', NextVisitDate mustn't be null and DeathDate must be null");
             }
 
             if (inspectionEdit.Conclusion == Conclusion.Recovery && (inspectionEdit.NextVisitDate != null || inspectionEdit.DeathDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Recovery\", NextVisitDate and DeathDate must be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion 'Recovery', NextVisitDate and DeathDate must be null");
+            }
+
+            if (inspectionEdit.Conclusion != Conclusion.Disease && inspection.HasNested)
+            {
+                throw new BadHttpRequestException(message: "The conclusion must be 'Disease', because the patient has later examinations");
             }
 
             if (inspectionEdit.NextVisitDate != null && inspectionEdit.NextVisitDate < inspection.Date)
             {
-                throw new BadHttpRequestException(message: $"Date and time of the next visit can't be earlier than date");
+                throw new BadHttpRequestException(message: "Date and time of the next visit can't be earlier than date");
             }
 
             if (inspectionEdit.DeathDate != null && inspectionEdit.DeathDate < inspection.Date)
             {
-                throw new BadHttpRequestException(message: $"Date and time of the death can't be earlier than date");
+                throw new BadHttpRequestException(message: "Date and time of the death can't be earlier than date");
             }
 
             if (inspectionEdit.Diagnoses.Count(x => x.Type == DiagnosisType.Main) != 1)
@@ -151,6 +156,63 @@ namespace MIS_Backend.Services
             }
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<List<InspectionPreviewModel>> GetInspectionChain(Guid inspectionId)
+        {
+            var inspectionRoot = _context.Inspections.Where(x => x.Id == inspectionId).FirstOrDefault();
+
+            if (inspectionRoot == null)
+            {
+                throw new KeyNotFoundException(message: $"Inspection not found");
+            }
+
+            if (inspectionRoot.PreviousInspectionId != null)
+            {
+                throw new BadHttpRequestException(message: $"Try to get chain for non-root medical inspection with id={inspectionId}");
+            }
+
+            var inspectionChild = await _context.Inspections.Where(x => x.BaseInspectionId == inspectionId)
+                .Include(x => x.Diagnoses)
+                .Include(x => x.Patients)
+                .Include(x => x.Doctors).ToListAsync();
+
+            List<InspectionPreviewModel> inspections = new List<InspectionPreviewModel>();
+
+            for (int i = 0; i < inspectionChild.Count; i++)
+            {
+                var diagnosis = inspectionChild[i].Diagnoses.Where(x => x.Type == DiagnosisType.Main.ToString())
+                    .Join(_isd10Context.MedicalRecords,
+                      d => d.IcdDiagnosisId,
+                      m => m.Id,
+                      (d, m) => new DiagnosisModel
+                      {
+                          Id = d.Id,
+                          CreateTime = d.CreateTime,
+                          Code = m.MkbCode,
+                          Name = m.MkbName,
+                          Discription = d.Discription,
+                          Type = d.Type
+                      }).First();
+
+                inspections.Add(new InspectionPreviewModel
+                {
+                    Id = inspectionChild[i].Id,
+                    CreateTime = inspectionChild[i].CreateTime,
+                    PreviousId = inspectionChild[i].PreviousInspectionId,
+                    Date = inspectionChild[i].Date,
+                    Conclusion = inspectionChild[i].Conclusion,
+                    PatientId = inspectionChild[i].PatientId,
+                    Patient = inspectionChild[i].Patients.Name,
+                    DoctorId = inspectionChild[i].DoctorId,
+                    Doctor = inspectionChild[i].Doctors.Name,
+                    Diagnosis = diagnosis,
+                    HasChain = inspectionChild[i].HasChain,
+                    HasNested = inspectionChild[i].HasNested
+                });
+            }
+
+            return inspections.OrderBy(x => x.CreateTime).ToList();
         }
     }
 }
