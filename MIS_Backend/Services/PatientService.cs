@@ -85,30 +85,35 @@ namespace MIS_Backend.Services
                 throw new BadHttpRequestException(message: $"Date and time can't be later than now {DateTime.UtcNow}");
             }
 
-            if (inspection.NextVisitDate != null && inspection.NextVisitDate < DateTime.UtcNow)
+            if (inspection.NextVisitDate != null && inspection.NextVisitDate <= DateTime.UtcNow)
             {
                 throw new BadHttpRequestException(message: $"Date and time of the next visit can't be earlier than now {DateTime.UtcNow}");
             }
 
-            var checkDate = await _context.Inspections.Where(x => x.Id == inspection.PreviousInspectionId && x.Date > inspection.Date).FirstOrDefaultAsync();
+            var checkDate = await _context.Inspections.Where(x => x.Id == inspection.PreviousInspectionId && x.Date >= inspection.Date).FirstOrDefaultAsync();
             if (checkDate != null)
             {
                 throw new BadHttpRequestException(message: "Inspection date and time can't be earlier than date and time of previous inspection");
             }
 
+            if (inspection.DeathDate != null && inspection.DeathDate < inspection.Date)
+            {
+                throw new BadHttpRequestException(message: $"Date and time of the death can't be earlier than date");
+            }
+
             if (inspection.Conclusion == Conclusion.Death && (inspection.DeathDate == null || inspection.NextVisitDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Death\", DeathDate mustn't be null and NextVisitDate must be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion 'Death', DeathDate mustn't be null and NextVisitDate must be null");
             }
 
             if (inspection.Conclusion == Conclusion.Disease && (inspection.NextVisitDate == null || inspection.DeathDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Disease\", NextVisitDate mustn't be null and DeathDate must be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion 'Disease', NextVisitDate mustn't be null and DeathDate must be null");
             }
 
             if (inspection.Conclusion == Conclusion.Recovery && (inspection.NextVisitDate != null || inspection.DeathDate != null))
             {
-                throw new BadHttpRequestException(message: "When choosing the conclusion \"Recovery\", NextVisitDate and DeathDate must be null");
+                throw new BadHttpRequestException(message: "When choosing the conclusion 'Recovery', NextVisitDate and DeathDate must be null");
             }
 
             if (inspection.Diagnoses.Count(x => x.Type == DiagnosisType.Main) != 1)
@@ -157,7 +162,7 @@ namespace MIS_Backend.Services
                 NextVisitDate = inspection.NextVisitDate,
                 DeathDate = inspection.DeathDate,
                 BaseInspectionId = inspection.PreviousInspectionId != null ?
-                _context.Inspections.Where(x => x.Id == inspection.PreviousInspectionId).Select(x => x.BaseInspectionId).FirstOrDefault() : inspectionId,
+                (previousInspection.BaseInspectionId == null? previousInspection.Id : previousInspection.BaseInspectionId) : null,
                 PreviousInspectionId = inspection.PreviousInspectionId,
                 PatientId = patientId,
                 DoctorId = doctorId,
@@ -279,13 +284,13 @@ namespace MIS_Backend.Services
                 throw new KeyNotFoundException(message: $"Patient not found");
             }
 
-            var isd10 = _isd10Context.MedicalRecords.Select(x => x.Id);
+            var isd10 = _isd10Context.MedicalRecords.Where(x => x.IdParent == null).Select(x => x.Id);
 
             foreach (var icd in icdRoots)
             {
                 if (!isd10.Contains(icd))
                 {
-                    throw new BadHttpRequestException(message: $"isd10 with id={icd} not found");
+                    throw new BadHttpRequestException(message: $"isd10 root with id={icd} not found");
                 }
             }
 
@@ -398,15 +403,14 @@ namespace MIS_Backend.Services
                     .Join(_isd10Context.MedicalRecords,
                       d => d.IcdDiagnosisId,
                       m => m.Id,
-                      (d, m) => new
+                      (d, m) => new DiagnosisModel
                       {
                           Id = d.Id,
                           CreateTime = d.CreateTime,
                           Code = m.MkbCode,
                           Name = m.MkbName,
                           Discription = d.Discription,
-                          Type = d.Type,
-                          Root = m.Root
+                          Type = d.Type
                       }).First();
 
                 inspections.Add(new InspectionShortModel
@@ -414,15 +418,7 @@ namespace MIS_Backend.Services
                      Id = inspection[i].Id,
                      CreateTime = inspection[i].CreateTime,
                      Date = inspection[i].Date,
-                     Diagnosis = new DiagnosisModel
-                     {
-                         Id = diagnosis.Id,
-                         CreateTime = diagnosis.CreateTime,
-                         Code = diagnosis.Code,
-                         Name = diagnosis.Name,
-                         Discription = diagnosis.Discription,
-                         Type = diagnosis.Type
-                     }
+                     Diagnosis = diagnosis
                 });
             }
 

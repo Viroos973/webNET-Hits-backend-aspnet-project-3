@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using MIS_Backend.Database.Enums;
 using MIS_Backend.Database.Models;
 using MIS_Backend.DTO;
 
@@ -19,6 +20,39 @@ namespace MIS_Backend.Mappings
                 );
             CreateMap<Doctor, DoctorModel>();
             CreateMap<Patient, PatientModel>();
+            CreateMap<Consultation, InspectionConsultationModel>()
+                .ForMember(
+                dest => dest.Speciality,
+                opt => opt.MapFrom(src => new SpecialityModel
+                {
+                    Id = src.Specialytis.Id,
+                    CreateTime = src.Specialytis.CreateTime,
+                    Name = src.Specialytis.Name,
+                }))
+                .ForMember(
+                dest => dest.RootComment,
+                opt => opt.MapFrom(src => src.Comments.Where(x => x.ParentId == null)
+                .Select(c => new InspectionCommentModel
+                {
+                    Id = c.Id,
+                    CreateTime = c.CreateTime,
+                    ParentId = c.ParentId,
+                    Content = c.Content,
+                    Author = new DoctorModel
+                    {
+                        Id = c.Doctors.Id,
+                        CreateTime = c.Doctors.CreateTime,
+                        Name = c.Doctors.Name,
+                        BirthDate = c.Doctors.BirthDate,
+                        Genders = (Gender)Enum.Parse(typeof(Gender), c.Doctors.Genders),
+                        EmailAddress = c.Doctors.EmailAddress,
+                        Phone = c.Doctors.Phone
+                    },
+                    ModifiedDate = c.ModifiedDate
+                }).FirstOrDefault()))
+                .ForMember(
+                dest => dest.CommentsNumber,
+                opt => opt.MapFrom(src => src.Comments.Count));
         }
     }
 }
