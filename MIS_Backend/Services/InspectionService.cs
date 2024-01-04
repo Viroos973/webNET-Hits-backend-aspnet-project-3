@@ -5,6 +5,7 @@ using MIS_Backend.Database.Enums;
 using MIS_Backend.Database.Models;
 using MIS_Backend.DTO;
 using MIS_Backend.Services.Interfaces;
+using System.Security;
 
 namespace MIS_Backend.Services
 {
@@ -70,6 +71,86 @@ namespace MIS_Backend.Services
                 Diagnoses = diagnosis,
                 Consultations = _mapper.Map<List<InspectionConsultationModel>>(inspection.Consultations)
             };
+        }
+
+        public async Task EdiInspection(InspectionEditModel inspectionEdit, Guid inspectionId, Guid doctorId)
+        {
+            var inspection = _context.Inspections.Where(x => x.Id == inspectionId).FirstOrDefault();
+
+            if (inspection == null)
+            {
+                throw new KeyNotFoundException(message: "inspection not found");
+            }
+
+            if (inspection.DoctorId != doctorId)
+            {
+                throw new SecurityException(message: $"The user is not the author of the inspection with id={inspectionId}");
+            }
+
+            var isd10 = _isd10Context.MedicalRecords.Select(x => x.Id);
+
+            foreach (var diagnoses in inspectionEdit.Diagnoses)
+            {
+                if (!isd10.Contains(diagnoses.IcdDiagnosisId))
+                {
+                    throw new BadHttpRequestException(message: $"isd10 with id={diagnoses.IcdDiagnosisId} not found");
+                }
+            }
+
+            if (inspectionEdit.Conclusion == Conclusion.Death && (inspectionEdit.DeathDate == null || inspectionEdit.NextVisitDate != null))
+            {
+                throw new BadHttpRequestException(message: "When choosing the conclusion \"Death\", DeathDate mustn't be null and NextVisitDate must be null");
+            }
+
+            if (inspectionEdit.Conclusion == Conclusion.Disease && (inspectionEdit.NextVisitDate == null || inspectionEdit.DeathDate != null))
+            {
+                throw new BadHttpRequestException(message: "When choosing the conclusion \"Disease\", NextVisitDate mustn't be null and DeathDate must be null");
+            }
+
+            if (inspectionEdit.Conclusion == Conclusion.Recovery && (inspectionEdit.NextVisitDate != null || inspectionEdit.DeathDate != null))
+            {
+                throw new BadHttpRequestException(message: "When choosing the conclusion \"Recovery\", NextVisitDate and DeathDate must be null");
+            }
+
+            if (inspectionEdit.NextVisitDate != null && inspectionEdit.NextVisitDate < inspection.Date)
+            {
+                throw new BadHttpRequestException(message: $"Date and time of the next visit can't be earlier than date");
+            }
+
+            if (inspectionEdit.DeathDate != null && inspectionEdit.DeathDate < inspection.Date)
+            {
+                throw new BadHttpRequestException(message: $"Date and time of the death can't be earlier than date");
+            }
+
+            if (inspectionEdit.Diagnoses.Count(x => x.Type == DiagnosisType.Main) != 1)
+            {
+                throw new BadHttpRequestException(message: "Inspection always must contain one diagnosis with Type equal to Main");
+            }
+
+            inspection.Anamnesis = inspectionEdit.Anamnesis;
+            inspection.Complaints = inspectionEdit.Complaints;
+            inspection.Treatment = inspectionEdit.Treatment;
+            inspection.Conclusion = inspectionEdit.Conclusion;
+            inspection.NextVisitDate = inspectionEdit.NextVisitDate;
+            inspection.DeathDate = inspectionEdit.DeathDate;
+
+            var diagnosis = await _context.Diagnoses.Where(x => x.InspectionId == inspectionId).ToListAsync();
+            _context.Diagnoses.RemoveRange(diagnosis);
+
+            foreach (var diagnosisEdit in inspectionEdit.Diagnoses)
+            {
+                await _context.Diagnoses.AddAsync(new Diagnosis
+                {
+                    Id = Guid.NewGuid(),
+                    CreateTime = DateTime.UtcNow,
+                    IcdDiagnosisId = diagnosisEdit.IcdDiagnosisId,
+                    Discription = diagnosisEdit.Discription,
+                    Type = diagnosisEdit.Type.ToString(),
+                    InspectionId = inspectionId
+                });
+            }
+
+            await _context.SaveChangesAsync();
         }
     }
 }

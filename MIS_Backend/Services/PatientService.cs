@@ -85,7 +85,7 @@ namespace MIS_Backend.Services
                 throw new BadHttpRequestException(message: $"Date and time can't be later than now {DateTime.UtcNow}");
             }
 
-            if (inspection.NextVisitDate != null && inspection.NextVisitDate < DateTime.UtcNow)
+            if (inspection.NextVisitDate != null && inspection.NextVisitDate <= DateTime.UtcNow)
             {
                 throw new BadHttpRequestException(message: $"Date and time of the next visit can't be earlier than now {DateTime.UtcNow}");
             }
@@ -94,6 +94,11 @@ namespace MIS_Backend.Services
             if (checkDate != null)
             {
                 throw new BadHttpRequestException(message: "Inspection date and time can't be earlier than date and time of previous inspection");
+            }
+
+            if (inspection.DeathDate != null && inspection.DeathDate < inspection.Date)
+            {
+                throw new BadHttpRequestException(message: $"Date and time of the death can't be earlier than date");
             }
 
             if (inspection.Conclusion == Conclusion.Death && (inspection.DeathDate == null || inspection.NextVisitDate != null))
@@ -157,7 +162,7 @@ namespace MIS_Backend.Services
                 NextVisitDate = inspection.NextVisitDate,
                 DeathDate = inspection.DeathDate,
                 BaseInspectionId = inspection.PreviousInspectionId != null ?
-                _context.Inspections.Where(x => x.Id == inspection.PreviousInspectionId).Select(x => x.BaseInspectionId).FirstOrDefault() : inspectionId,
+                (previousInspection.BaseInspectionId == null? previousInspection.Id : previousInspection.BaseInspectionId) : null,
                 PreviousInspectionId = inspection.PreviousInspectionId,
                 PatientId = patientId,
                 DoctorId = doctorId,
@@ -279,13 +284,13 @@ namespace MIS_Backend.Services
                 throw new KeyNotFoundException(message: $"Patient not found");
             }
 
-            var isd10 = _isd10Context.MedicalRecords.Select(x => x.Id);
+            var isd10 = _isd10Context.MedicalRecords.Where(x => x.IdParent == null).Select(x => x.Id);
 
             foreach (var icd in icdRoots)
             {
                 if (!isd10.Contains(icd))
                 {
-                    throw new BadHttpRequestException(message: $"isd10 with id={icd} not found");
+                    throw new BadHttpRequestException(message: $"isd10 root with id={icd} not found");
                 }
             }
 
