@@ -120,5 +120,55 @@ namespace MIS_Backend.Controllers
                 });
             }
         }
+
+        [HttpPut]
+        [Authorize]
+        [Route("comment/{id}")]
+        public async Task<IActionResult> EditComment(Guid id, InspectionCommentCreateModel comment)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+                await _consultationSevise.EditComment(id, comment, Guid.Parse(User.Identity.Name));
+                return Ok();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new Response
+                {
+                    Status = "Error",
+                    Message = "User is not authorized"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (SecurityException ex)
+            {
+                return StatusCode(403, new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+        }
     }
 }

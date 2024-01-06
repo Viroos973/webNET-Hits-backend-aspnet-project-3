@@ -126,6 +126,8 @@ namespace MIS_Backend.Services
             };
         }
 
+        /*public async Task<>*/
+
         public async Task<Guid> AddComment(Guid consultationId, CommentCreateModel comment, Guid doctorId)
         {
             var consultation = _context.Consultations.Where(x => x.Id == consultationId).Include(x => x.Inspections).FirstOrDefault();
@@ -174,6 +176,32 @@ namespace MIS_Backend.Services
             await _context.SaveChangesAsync();
 
             return commentId;
+        }
+
+        public async Task EditComment(Guid idComment, InspectionCommentCreateModel commentEdit, Guid doctorId)
+        {
+            var comment = _context.Comments.Where(x => x.Id == idComment).FirstOrDefault();
+
+            if (comment == null)
+            {
+                throw new KeyNotFoundException(message: $"Comment with id={idComment} not found in database");
+            }
+
+            var doctor = _context.Doctors.Where(x => x.Id == doctorId).FirstOrDefault();
+
+            if (doctor == null)
+            {
+                throw new KeyNotFoundException(message: $"Doctor with id={doctorId} not found in database");
+            }
+
+            if (comment.Author != doctorId)
+            {
+                throw new SecurityException(message: "The user is not the author of the comment");
+            }
+
+            comment.Content = commentEdit.Content;
+
+            await _context.SaveChangesAsync();
         }
     }
 }
