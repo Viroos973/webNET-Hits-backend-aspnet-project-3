@@ -5,5 +5,6 @@ namespace MIS_Backend.Services.Interfaces
     public interface IConsultationService
     {
         Task<InspectionPagedListModel> GetInspectionForConsultation(Guid doctorId, bool? grouped, List<Guid> icdRoots, int? page, int? size);
+        Task<Guid> AddComment(Guid consultationId, CommentCreateModel comment, Guid doctorId);
     }
 }

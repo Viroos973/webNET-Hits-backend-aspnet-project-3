@@ -2,8 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using MIS_Backend.Database;
 using MIS_Backend.Database.Enums;
+using MIS_Backend.Database.Models;
 using MIS_Backend.DTO;
 using MIS_Backend.Services.Interfaces;
+using System.Security;
 
 namespace MIS_Backend.Services
 {
@@ -122,6 +124,56 @@ namespace MIS_Backend.Services
                 Inspections = inspections,
                 Pagination = pagination
             };
+        }
+
+        public async Task<Guid> AddComment(Guid consultationId, CommentCreateModel comment, Guid doctorId)
+        {
+            var consultation = _context.Consultations.Where(x => x.Id == consultationId).Include(x => x.Inspections).FirstOrDefault();
+
+            if (consultation == null)
+            {
+                throw new KeyNotFoundException(message: $"Consultation with id={consultationId} not found in database");
+            }
+
+            var doctor = _context.Doctors.Where(x => x.Id == doctorId).FirstOrDefault();
+
+            if (doctor == null)
+            {
+                throw new KeyNotFoundException(message: $"Doctor with id={doctorId} not found in database");
+            }
+
+            if (consultation.SpecialityId != doctor.Speciality && consultation.Inspections.DoctorId != doctorId)
+            {
+                throw new SecurityException(message: "The user has an inappropriate specialty and is not the author of the inspection");
+            }
+
+            var commentParent = _context.Comments.Where(x => x.Id == comment.ParentId).FirstOrDefault();
+
+            if (commentParent == null)
+            {
+                throw new KeyNotFoundException(message: $"Comment with id={comment.ParentId} not found in database");
+            }
+
+            if (commentParent.CosultationId != consultationId)
+            {
+                throw new BadHttpRequestException(message: $"Incorrect combination between consultation with id={consultationId} and parent comment with id={comment.ParentId}");
+            }
+
+            var commentId = Guid.NewGuid();
+
+            await _context.Comments.AddAsync(new Comment
+            {
+                Id = commentId,
+                CreateTime = DateTime.UtcNow,
+                ModifiedDate = null,
+                Content = comment.Content,
+                Author = doctorId,
+                ParentId = comment.ParentId,
+                CosultationId = consultationId
+            });
+            await _context.SaveChangesAsync();
+
+            return commentId;
         }
     }
 }

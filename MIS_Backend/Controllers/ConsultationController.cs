@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MIS_Backend.DTO;
 using MIS_Backend.Services.Interfaces;
+using System.Security;
 
 namespace MIS_Backend.Controllers
 {
@@ -20,7 +21,7 @@ namespace MIS_Backend.Controllers
 
         [HttpGet]
         [Authorize]
-        public async Task<IActionResult> GetInspection([FromQuery] List<Guid> icdRoots, bool? grouped = false, int? page = 1, int? size = 5)
+        public async Task<IActionResult> GetInspectionForCosultation([FromQuery] List<Guid> icdRoots, bool? grouped = false, int? page = 1, int? size = 5)
         {
             try
             {
@@ -47,6 +48,64 @@ namespace MIS_Backend.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+        }
+
+        [HttpPost]
+        [Authorize]
+        [Route("{id}/comment")]
+        public async Task<IActionResult> AddComment(Guid id, CommentCreateModel comment)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+                Guid commentId = await _consultationSevise.AddComment(id, comment, Guid.Parse(User.Identity.Name));
+                return Ok(commentId);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new Response
+                {
+                    Status = "Error",
+                    Message = "User is not authorized"
+                });
+            }
+            catch (BadHttpRequestException ex)
+            {
+                return BadRequest(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (SecurityException ex)
+            {
+                return StatusCode(403, new Response
                 {
                     Status = "Error",
                     Message = ex.Message
