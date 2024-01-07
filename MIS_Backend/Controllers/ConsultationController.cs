@@ -63,6 +63,43 @@ namespace MIS_Backend.Controllers
             }
         }
 
+        [HttpGet]
+        [Authorize]
+        [Route("{id}")]
+        public async Task<IActionResult> GetConsultation(Guid id)
+        {
+            try
+            {
+                await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+                ConsultationModel consultation = await _consultationSevise.GetConsultation(id);
+                return Ok(consultation);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new Response
+                {
+                    Status = "Error",
+                    Message = "User is not authorized"
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new Response
+                {
+                    Status = "Error",
+                    Message = ex.Message
+                });
+            }
+        }
+
         [HttpPost]
         [Authorize]
         [Route("{id}/comment")]

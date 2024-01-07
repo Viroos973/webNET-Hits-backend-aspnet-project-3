@@ -121,12 +121,24 @@ namespace MIS_Backend.Services
 
             return new InspectionPagedListModel
             {
-                Inspections = inspections,
+                Inspections = inspections.OrderBy(x => x.Date).ToList(),
                 Pagination = pagination
             };
         }
 
-        /*public async Task<>*/
+        public async Task<ConsultationModel> GetConsultation(Guid consultationId)
+        {
+            var consultation = _context.Consultations.Where(x => x.Id == consultationId)
+                .Include(x => x.Comments).ThenInclude(x => x.Doctors)
+                .Include(x => x.Specialytis).FirstOrDefault();
+
+            if (consultation == null)
+            {
+                throw new KeyNotFoundException(message: $"Consultation with id={consultationId} not found in database");
+            }
+
+            return _mapper.Map<ConsultationModel>(consultation);
+        }
 
         public async Task<Guid> AddComment(Guid consultationId, CommentCreateModel comment, Guid doctorId)
         {
@@ -200,6 +212,7 @@ namespace MIS_Backend.Services
             }
 
             comment.Content = commentEdit.Content;
+            comment.ModifiedDate = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
         }
