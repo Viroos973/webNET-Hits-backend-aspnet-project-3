@@ -53,6 +53,26 @@ namespace MIS_Backend.Mappings
                 .ForMember(
                 dest => dest.CommentsNumber,
                 opt => opt.MapFrom(src => src.Comments.Count));
+            CreateMap<Consultation, ConsultationModel>().ForMember(
+                dest => dest.Speciality,
+                opt => opt.MapFrom(src => new SpecialityModel
+                {
+                    Id = src.Specialytis.Id,
+                    CreateTime = src.Specialytis.CreateTime,
+                    Name = src.Specialytis.Name,
+                }))
+                .ForMember(
+                dest => dest.Comments,
+                opt => opt.MapFrom(src => src.Comments.Select(c => new CommentModel
+                { 
+                    Id = c.Id,
+                    CreateTime = c.CreateTime,
+                    ModifiedDate = c.ModifiedDate,
+                    Content = c.Content,
+                    AuthorId = c.Author,
+                    Author = c.Doctors.Name,
+                    ParentId = c.ParentId,
+                }).ToList()));
         }
     }
 }
