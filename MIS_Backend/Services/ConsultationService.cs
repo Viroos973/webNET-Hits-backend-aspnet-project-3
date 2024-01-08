@@ -103,14 +103,14 @@ namespace MIS_Backend.Services
                     });
             }
 
-            var maxPage = (int)((inspections.Count() + size - 1) / size);
+            var maxPage = (int)Math.Ceiling(inspections.Count() / (double)size);
 
             if ((page < 1 || inspections.Count() <= (page - 1) * size) && maxPage > 0)
             {
                 throw new BadHttpRequestException(message: $"Page value must be greater than 0 and less than {maxPage + 1}");
             }
 
-            inspections = inspections.Skip((int)((page - 1) * size)).Take((int)size).ToList();
+            inspections = inspections.OrderByDescending(x => x.Date).Skip((int)((page - 1) * size)).Take((int)size).ToList();
 
             var pagination = new PageInfoModel
             {
@@ -121,7 +121,7 @@ namespace MIS_Backend.Services
 
             return new InspectionPagedListModel
             {
-                Inspections = inspections.OrderBy(x => x.Date).ToList(),
+                Inspections = inspections,
                 Pagination = pagination
             };
         }

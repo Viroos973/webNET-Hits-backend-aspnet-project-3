@@ -23,7 +23,9 @@ namespace MIS_Backend.Services
 
         public async Task<Guid> CreatePatient(PatientCreateModel patient)
         {
-            if (patient.BirthDate != null && patient.BirthDate > DateTime.UtcNow)
+            var now = DateTime.UtcNow;
+
+            if (patient.BirthDate != null && patient.BirthDate > now)
             {
                 throw new BadHttpRequestException(message: "Birth date can't be later than today");
             }
@@ -33,7 +35,7 @@ namespace MIS_Backend.Services
             await _context.Patients.AddAsync(new Patient
             {
                 Id = patientId,
-                CreateTime = DateTime.UtcNow,
+                CreateTime = now,
                 Name = patient.Name,
                 BirthDate = patient.BirthDate,
                 Genders = patient.Genders.ToString(),
@@ -80,14 +82,16 @@ namespace MIS_Backend.Services
                 }
             }
 
-            if (inspection.Date > DateTime.UtcNow)
+            var now = DateTime.UtcNow;
+
+            if (inspection.Date > now)
             {
-                throw new BadHttpRequestException(message: $"Date and time can't be later than now {DateTime.UtcNow}");
+                throw new BadHttpRequestException(message: $"Date and time can't be later than now {now}");
             }
 
-            if (inspection.NextVisitDate != null && inspection.NextVisitDate <= DateTime.UtcNow)
+            if (inspection.NextVisitDate != null && inspection.NextVisitDate <= now)
             {
-                throw new BadHttpRequestException(message: $"Date and time of the next visit can't be earlier than now {DateTime.UtcNow}");
+                throw new BadHttpRequestException(message: $"Date and time of the next visit can't be earlier than now {now}");
             }
 
             var checkDate = await _context.Inspections.Where(x => x.Id == inspection.PreviousInspectionId && x.Date >= inspection.Date).FirstOrDefaultAsync();
@@ -153,7 +157,7 @@ namespace MIS_Backend.Services
             await _context.Inspections.AddAsync(new Inspection
             {
                 Id = inspectionId,
-                CreateTime = DateTime.UtcNow,
+                CreateTime = now,
                 Date = inspection.Date,
                 Anamnesis = inspection.Anamnesis,
                 Complaints = inspection.Complaints,
@@ -175,7 +179,7 @@ namespace MIS_Backend.Services
                 await _context.Diagnoses.AddAsync(new Diagnosis
                 {
                     Id = Guid.NewGuid(),
-                    CreateTime = DateTime.UtcNow,
+                    CreateTime = now,
                     IcdDiagnosisId = diagnosis.IcdDiagnosisId,
                     Discription = diagnosis.Discription,
                     Type = diagnosis.Type.ToString(),
@@ -192,7 +196,7 @@ namespace MIS_Backend.Services
                     await _context.Consultations.AddAsync(new Consultation
                     {
                         Id = consultationId,
-                        CreateTime = DateTime.UtcNow,
+                        CreateTime = now,
                         InspectionId = inspectionId,
                         SpecialityId = consultation.SpecialityId
                     });
@@ -200,7 +204,7 @@ namespace MIS_Backend.Services
                     await _context.Comments.AddAsync(new Comment
                     {
                         Id = Guid.NewGuid(),
-                        CreateTime = DateTime.UtcNow,
+                        CreateTime = now,
                         ModifiedDate = null,
                         Content = consultation.comment.Content,
                         Author = doctorId,
@@ -247,7 +251,7 @@ namespace MIS_Backend.Services
                 patient = patient.Where(x => x.Name.ToLower().Contains(name.ToLower())).ToList();
             }
 
-            var maxPage = (int)((patient.Count() + size - 1) / size);
+            var maxPage = (int)Math.Ceiling(patient.Count() / (double)size);
 
             if ((page < 1 || patient.Count() <= (page - 1) * size) && maxPage > 0)
             {
@@ -349,14 +353,14 @@ namespace MIS_Backend.Services
                     });
             }
 
-            var maxPage = (int)((inspections.Count() + size - 1) / size);
+            var maxPage = (int)Math.Ceiling(inspections.Count() / (double)size);
 
             if ((page < 1 || inspections.Count() <= (page - 1) * size) && maxPage > 0)
             {
                 throw new BadHttpRequestException(message: $"Page value must be greater than 0 and less than {maxPage + 1}");
             }
 
-            inspections = inspections.Skip((int)((page - 1) * size)).Take((int)size).ToList();
+            inspections = inspections.OrderByDescending(x => x.Date).Skip((int)((page - 1) * size)).Take((int)size).ToList();
 
             var pagination = new PageInfoModel
             {
@@ -427,7 +431,7 @@ namespace MIS_Backend.Services
                 inspections = inspections.Where(x => x.Diagnosis.Name.ToLower().Contains(request.ToLower()) || x.Diagnosis.Code.ToLower().Contains(request.ToLower())).ToList();
             }
 
-            return inspections;
+            return inspections.OrderByDescending(x => x.Date).ToList();
         }
 
         public List<Patient> SortingDishes(List<Patient> patients, PatientSorting? sorting)

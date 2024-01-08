@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using MIS_Backend.Database;
+using MIS_Backend.Database.Models;
 using MIS_Backend.DTO;
 using MIS_Backend.Services.Interfaces;
 
@@ -26,14 +27,14 @@ namespace MIS_Backend.Services
                 throw new BadHttpRequestException(message: $"Size value must be greater than 0");
             }
 
-            var specialytis = await _context.Specialytis.ToListAsync();
+            var specialytis = await _context.Specialytis.OrderBy(x => x.Name).ToListAsync();
 
             if (name != null)
             {
                 specialytis = specialytis.Where(x => x.Name.ToLower().Contains(name.ToLower())).ToList();
             }
 
-            var maxPage = (int)((specialytis.Count() + size - 1) / size);
+            var maxPage = (int)Math.Ceiling(specialytis.Count() / (double)size);
 
             if (page < 1 || specialytis.Count() <= (page - 1) * size)
             {
@@ -63,14 +64,14 @@ namespace MIS_Backend.Services
                 throw new BadHttpRequestException(message: $"Size value must be greater than 0");
             }
 
-            var isd10 = await _isd10Context.MedicalRecords.ToListAsync();
+            var isd10 = await _isd10Context.MedicalRecords.Where(x => x.Actual == 1).ToListAsync();
 
             if (request != null)
             {
                 isd10 = isd10.Where(x => x.MkbName.ToLower().Contains(request.ToLower()) || x.MkbCode.ToLower().Contains(request.ToLower())).ToList();
             }
 
-            var maxPage = (int)((isd10.Count() + size - 1) / size);
+            var maxPage = (int)Math.Ceiling(isd10.Count() / (double)size);
 
             if (page < 1 || isd10.Count() <= (page - 1) * size)
             {
@@ -95,8 +96,7 @@ namespace MIS_Backend.Services
 
         public async Task<List<Isd10RecordModel>> GetRootISD10()
         {
-            var isd10 = await _isd10Context.MedicalRecords.Where(x => x.IdParent == null).ToListAsync();
-            isd10 = isd10.OrderBy(x => x.Id).ToList();
+            var isd10 = await _isd10Context.MedicalRecords.Where(x => x.IdParent == null && x.Actual == 1).OrderBy(x => x.MkbCode).ToListAsync();
             return _mapper.Map<List<Isd10RecordModel>>(isd10);
         }
     }

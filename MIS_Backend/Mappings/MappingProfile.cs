@@ -72,7 +72,7 @@ namespace MIS_Backend.Mappings
                     AuthorId = c.Author,
                     Author = c.Doctors.Name,
                     ParentId = c.ParentId,
-                }).ToList()));
+                }).OrderBy(x => x.CreateTime).ToList()));
         }
     }
 }

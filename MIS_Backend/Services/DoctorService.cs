@@ -25,7 +25,9 @@ namespace MIS_Backend.Services
 
         public async Task<TokenResponseModel> RegisterUser(DoctorRegisterModel doctorRegisterModel)
         {
-            if (doctorRegisterModel.BirthDate != null && doctorRegisterModel.BirthDate > DateTime.UtcNow)
+            var now = DateTime.UtcNow;
+
+            if (doctorRegisterModel.BirthDate != null && doctorRegisterModel.BirthDate > now)
             {
                 throw new BadHttpRequestException(message: "Birth date can't be later than today");
             }
@@ -54,7 +56,7 @@ namespace MIS_Backend.Services
             await _context.Doctors.AddAsync(new Doctor
             {
                 Id = Guid.NewGuid(),
-                CreateTime = DateTime.UtcNow,
+                CreateTime = now,
                 Name = doctorRegisterModel.Name,
                 BirthDate = doctorRegisterModel.BirthDate,
                 Speciality = doctorRegisterModel.Speciality,
@@ -92,11 +94,12 @@ namespace MIS_Backend.Services
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes("jAoRAj9kzVPykFATzV1Ye0LJNmdcuB");
+            var now = DateTime.UtcNow;
 
             var TokenDescriptor = new SecurityTokenDescriptor()
             {
-                NotBefore = DateTime.UtcNow,
-                Expires = DateTime.UtcNow.AddHours(1),
+                NotBefore = now,
+                Expires = now.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
                 Issuer = "MISBackend",
                 Audience = "MISFronted",
