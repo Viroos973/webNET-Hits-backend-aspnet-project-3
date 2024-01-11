@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using MIS_Backend.Database.Enums;
 
 namespace MIS_Backend.DTO
 {

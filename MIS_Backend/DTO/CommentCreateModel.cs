@@ -1,6 +1,4 @@
-﻿using MIS_Backend.Database.Models;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace MIS_Backend.DTO
 {

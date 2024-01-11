@@ -7,6 +7,8 @@ using MIS_Backend.Mappings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Quartz;
+using MIS_Backend.Jobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,7 +61,25 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
+builder.Services.AddQuartz(q =>
+{
+    var jobKey = new JobKey("SendEmailJob");
+    q.AddJob<SendEmailJob>(opts => opts.WithIdentity(jobKey));
+    q.AddTrigger(opts => opts
+        .ForJob(jobKey)
+        .WithIdentity("SendEmail-trigger")
+        .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(0, 0))
+    );
+});
+builder.Services.AddQuartzHostedService(q => q.WaitForJobsToComplete = true);
+
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -10,13 +10,15 @@ namespace MIS_Backend.Controllers
     [Route("api/consultation")]
     public class ConsultationController : ControllerBase
     {
-        public readonly IConsultationService _consultationSevise;
-        public readonly ITokenService _tokenService;
+        private readonly IConsultationService _consultationSevise;
+        private readonly ITokenService _tokenService;
+        private readonly ILogger<ConsultationController> _logger;
 
-        public ConsultationController(IConsultationService consultationSevise, ITokenService tokenService)
+        public ConsultationController(IConsultationService consultationSevise, ITokenService tokenService, ILogger<ConsultationController> logger)
         {
             _consultationSevise = consultationSevise;
             _tokenService = tokenService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -25,12 +27,18 @@ namespace MIS_Backend.Controllers
         {
             try
             {
+                _logger.LogInformation("Attempt to check token for user authorization");
                 await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+
+                _logger.LogInformation($"Attempt to get inspection for consultation with parameters: {grouped}, {icdRoots}, {page}, {size}");
                 InspectionPagedListModel inspections = await _consultationSevise.GetInspectionForConsultation(Guid.Parse(User.Identity.Name), grouped, icdRoots, page, size);
+
+                _logger.LogInformation("Attempt to get inspection for consultation was successful");
                 return Ok(inspections);
             }
             catch (UnauthorizedAccessException)
             {
+                _logger.LogError("User is not authorized to get inspection for consultation");
                 return Unauthorized(new Response
                 {
                     Status = "Error",
@@ -39,6 +47,7 @@ namespace MIS_Backend.Controllers
             }
             catch (BadHttpRequestException ex)
             {
+                _logger.LogError($"Bad request exception occurred upon attempt to get inspection for consultation: {ex.Message}");
                 return BadRequest(new Response
                 {
                     Status = "Error",
@@ -47,6 +56,7 @@ namespace MIS_Backend.Controllers
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogError($"Key not found exception occurred upon attempt to get inspection for consultation: {ex.Message}");
                 return NotFound(new Response
                 {
                     Status = "Error",
@@ -55,6 +65,7 @@ namespace MIS_Backend.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError($"Internal server exception occurred upon attempt to get inspection for consultation: {ex.Message}");
                 return StatusCode(500, new Response
                 {
                     Status = "Error",
@@ -70,12 +81,18 @@ namespace MIS_Backend.Controllers
         {
             try
             {
+                _logger.LogInformation("Attempt to check token for user authorization");
                 await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+
+                _logger.LogInformation($"Attempt to get consultation with parameters: {id}");
                 ConsultationModel consultation = await _consultationSevise.GetConsultation(id);
+
+                _logger.LogInformation("Attempt to get consultation was successful");
                 return Ok(consultation);
             }
             catch (UnauthorizedAccessException)
             {
+                _logger.LogError("User is not authorized to get consultation");
                 return Unauthorized(new Response
                 {
                     Status = "Error",
@@ -84,6 +101,7 @@ namespace MIS_Backend.Controllers
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogError($"Key not found exception occurred upon attempt to get consultation: {ex.Message}");
                 return NotFound(new Response
                 {
                     Status = "Error",
@@ -92,6 +110,7 @@ namespace MIS_Backend.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError($"Internal server exception occurred upon attempt to get consultation: {ex.Message}");
                 return StatusCode(500, new Response
                 {
                     Status = "Error",
@@ -107,17 +126,24 @@ namespace MIS_Backend.Controllers
         {
             if (!ModelState.IsValid)
             {
+                _logger.LogError($"Bad request exception occurred in the body {comment}");
                 return BadRequest(ModelState);
             }
 
             try
             {
+                _logger.LogInformation("Attempt to check token for user authorization");
                 await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+
+                _logger.LogInformation($"Attempt to add comment with parameters: {id}, {comment}");
                 Guid commentId = await _consultationSevise.AddComment(id, comment, Guid.Parse(User.Identity.Name));
+
+                _logger.LogInformation("Attempt to add comment was successful");
                 return Ok(commentId);
             }
             catch (UnauthorizedAccessException)
             {
+                _logger.LogError("User is not authorized to add comment");
                 return Unauthorized(new Response
                 {
                     Status = "Error",
@@ -126,6 +152,7 @@ namespace MIS_Backend.Controllers
             }
             catch (BadHttpRequestException ex)
             {
+                _logger.LogError($"Bad request exception occurred upon attempt to add comment: {ex.Message}");
                 return BadRequest(new Response
                 {
                     Status = "Error",
@@ -134,6 +161,7 @@ namespace MIS_Backend.Controllers
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogError($"Key not found exception occurred upon attempt to add comment: {ex.Message}");
                 return NotFound(new Response
                 {
                     Status = "Error",
@@ -142,6 +170,7 @@ namespace MIS_Backend.Controllers
             }
             catch (SecurityException ex)
             {
+                _logger.LogError($"Security exception occurred upon attempt to add comment: {ex.Message}");
                 return StatusCode(403, new Response
                 {
                     Status = "Error",
@@ -150,6 +179,7 @@ namespace MIS_Backend.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError($"Internal server exception occurred upon attempt to add comment: {ex.Message}");
                 return StatusCode(500, new Response
                 {
                     Status = "Error",
@@ -165,17 +195,24 @@ namespace MIS_Backend.Controllers
         {
             if (!ModelState.IsValid)
             {
+                _logger.LogError($"Bad request exception occurred in the body {comment}");
                 return BadRequest(ModelState);
             }
 
             try
             {
+                _logger.LogInformation("Attempt to check token for user authorization");
                 await _tokenService.CheckToken(HttpContext.Request.Headers["Authorization"].ToString().Substring("Bearer ".Length));
+
+                _logger.LogInformation($"Attempt to edit comment with parameters: {id}, {comment}");
                 await _consultationSevise.EditComment(id, comment, Guid.Parse(User.Identity.Name));
+
+                _logger.LogInformation("Attempt to edit was successful");
                 return Ok();
             }
             catch (UnauthorizedAccessException)
             {
+                _logger.LogError("User is not authorized to edit comment");
                 return Unauthorized(new Response
                 {
                     Status = "Error",
@@ -184,6 +221,7 @@ namespace MIS_Backend.Controllers
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogError($"Key not found exception occurred upon attempt to edit comment: {ex.Message}");
                 return NotFound(new Response
                 {
                     Status = "Error",
@@ -192,6 +230,7 @@ namespace MIS_Backend.Controllers
             }
             catch (SecurityException ex)
             {
+                _logger.LogError($"Security exception occurred upon attempt to get to edit comment: {ex.Message}");
                 return StatusCode(403, new Response
                 {
                     Status = "Error",
@@ -200,6 +239,7 @@ namespace MIS_Backend.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError($"Internal server exception occurred upon attempt to edit comment: {ex.Message}");
                 return StatusCode(500, new Response
                 {
                     Status = "Error",

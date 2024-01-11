@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace MIS_Backend.DTO
+﻿namespace MIS_Backend.DTO
 {
     public class Isd10RecordModel
     {
