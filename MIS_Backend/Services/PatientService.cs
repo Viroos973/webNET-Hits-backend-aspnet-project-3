@@ -241,7 +241,7 @@ namespace MIS_Backend.Services
 
             if (scheduledVisits == true)
             {
-                patient = patient.Where(x => x.Inspections.Any(i => !i.HasNested && i.NextVisitDate != null && i.NextVisitDate > DateTime.UtcNow)).ToList();
+                patient = patient.Where(x => x.Inspections.Any(i => !i.HasNested && i.NextVisitDate != null)).ToList();
             }
 
             patient = SortingDishes(patient, sorting);
